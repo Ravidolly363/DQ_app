@@ -5,19 +5,15 @@ import re
 import logging
 import json
 from datetime import datetime
-from dotenv import load_dotenv # pyright: ignore[reportMissingImports]
+from dotenv import load_dotenv
 
-# Import Groq correctly - try different import methods
+# Import Groq - only use the new method
 try:
     from groq import Groq
-    GROQ_IMPORT_METHOD = "new"
+    GROQ_AVAILABLE = True
 except ImportError:
-    try:
-        import groq
-        GROQ_IMPORT_METHOD = "old"
-    except ImportError:
-        print("Groq package not found. Please install with: pip install groq")
-        exit(1)
+    GROQ_AVAILABLE = False
+    print("Groq package not found or outdated. Please install with: pip install groq>=0.4.0")
 
 # Load environment variables
 load_dotenv()
@@ -27,7 +23,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-app.template_folder = 'templates'  # Use capital T if your folder is named "Templates"
+app.template_folder = 'templates'
 app.secret_key = os.environ.get('FLASK_SECRET_KEY', os.urandom(24))
 
 # Database configuration from environment variables
@@ -41,17 +37,19 @@ DB_CONFIG = {
 # Initialize Groq client with API key from environment variable
 GROQ_API_KEY = os.environ.get('GROQ_API_KEY', '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')
 
-if GROQ_IMPORT_METHOD == "new":
-    groq_client = Groq(api_key=GROQ_API_KEY)
-else:
-    groq.api_key = GROQ_API_KEY
-    groq_client = None
-
+# Only initialize if Groq is available
+groq_client = None
+if GROQ_AVAILABLE:
+    try:
+        groq_client = Groq(api_key=GROQ_API_KEY)
+        logger.info("Groq client initialized successfully")
+    except Exception as e:
+        logger.error(f"Failed to initialize Groq client: {str(e)}")
+        GROQ_AVAILABLE = False
 
 # Main routes
 @app.route('/')
 def index():
-    # Initialize chat history if it doesn't exist
     if 'chat_history' not in session:
         session['chat_history'] = []
     return render_template('index.html')
@@ -59,14 +57,12 @@ def index():
 @app.route('/process', methods=['POST'])
 def process_data():
     user_message = request.json.get('message', '')
-    database = request.json.get('database', 'DataQuality')  # Get database from request
+    database = request.json.get('database', 'DataQuality')
     logger.info(f"Received user message for database {database}: {user_message}")
     
-    # Initialize chat history if needed
     if 'chat_history' not in session:
         session['chat_history'] = []
     
-    # Add user message to history
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     session['chat_history'].append({
         'role': 'user',
@@ -75,19 +71,15 @@ def process_data():
         'database': database
     })
     
-    # Check if user is asking about history
     if "what is the code" in user_message.lower() or "show me the sql" in user_message.lower():
         return handle_history_request(user_message)
     
-    # Get AI response from Groq with context from history
     ai_response = get_ai_response(user_message, database)
     logger.info(f"AI response: {ai_response}")
     
-    # Execute any SQL commands in the AI response
     result = execute_ai_commands(ai_response, database)
     logger.info(f"Execution result: {result}")
     
-    # Add AI response to history
     session['chat_history'].append({
         'role': 'assistant',
         'content': ai_response,
@@ -96,7 +88,6 @@ def process_data():
         'database': database
     })
     
-    # Save history
     session.modified = True
     
     return jsonify({
@@ -108,7 +99,6 @@ def process_data():
 def handle_history_request(user_message):
     history = session.get('chat_history', [])
     
-    # Extract SQL operations from history
     sql_operations = []
     for entry in history:
         if entry['role'] == 'assistant' and 'content' in entry:
@@ -128,7 +118,6 @@ def handle_history_request(user_message):
         for i, op in enumerate(sql_operations, 1):
             response += f"{i}. At {op['timestamp']} on database {op['database']}:\n<SQL>{op['sql']}</SQL>\n\n"
     
-    # Add response to history
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     database = history[-1].get('database', 'DataQuality') if history else 'DataQuality'
     
@@ -178,12 +167,10 @@ def list_databases():
         logger.error(f"Database connection error: {str(e)}")
         return jsonify({"status": "error", "message": str(e)})
 
-# Database test endpoint
 @app.route('/test_db', methods=['POST'])
 def test_db():
     database = request.json.get('database', 'DataQuality')
     try:
-        # Create a new config with the specified database
         db_config = DB_CONFIG.copy()
         db_config['database'] = database
         
@@ -203,17 +190,14 @@ def test_db():
         logger.error(f"Database connection error for {database}: {str(e)}")
         return jsonify({"status": "error", "message": str(e)})
 
-# Get database schema information
 def get_database_schema(database='DataQuality'):
     try:
-        # Create a new config with the specified database
         db_config = DB_CONFIG.copy()
         db_config['database'] = database
         
         conn = mysql.connector.connect(**db_config)
         cursor = conn.cursor()
         
-        # Get list of tables
         cursor.execute("SHOW TABLES")
         tables = [table[0] for table in cursor.fetchall()]
         
@@ -222,7 +206,6 @@ def get_database_schema(database='DataQuality'):
         
         schema_info = []
         
-        # Get column information for each table
         for table in tables:
             cursor.execute(f"DESCRIBE `{table}`")
             columns = cursor.fetchall()
@@ -237,15 +220,15 @@ def get_database_schema(database='DataQuality'):
         logger.error(f"Error getting schema for database {database}: {str(e)}")
         return f"Unable to retrieve schema for database {database}"
 
-# AI functions
 def get_ai_response(user_message, database='DataQuality'):
-    # Get more extensive history for context (last 15 messages)
-    history = session.get('chat_history', [])[-15:]
+    # Check if Groq is available
+    if not GROQ_AVAILABLE or groq_client is None:
+        logger.error("Groq client is not available")
+        return "I'm sorry, but the AI service is currently unavailable. Please check that the Groq package is installed correctly (pip install groq>=0.4.0) and that your API key is valid."
     
-    # Get information about existing database tables for context
+    history = session.get('chat_history', [])[-15:]
     table_info = get_database_schema(database)
     
-    # Enhanced context for the AI to understand its role
     system_prompt = f"""
     You are a friendly, conversational data quality assistant that helps with database operations while also engaging in normal conversation. You can discuss any topic while specializing in data quality concepts.
 
@@ -280,10 +263,8 @@ def get_ai_response(user_message, database='DataQuality'):
     Always prioritize data safety and accuracy in your responses.
     """
     
-    # Create message array for API with enhanced history handling
     messages = [{"role": "system", "content": system_prompt}]
     
-    # Add a summary of past SQL operations to reinforce memory
     if history:
         sql_summary = f"Previous SQL operations in this conversation (on database {database}):\n"
         operation_count = 0
@@ -298,47 +279,36 @@ def get_ai_response(user_message, database='DataQuality'):
         if operation_count > 0:
             messages.append({"role": "system", "content": sql_summary})
     
-    # Add conversation history
     for msg in history:
         if 'content' in msg:
             messages.append({"role": msg['role'], "content": msg['content']})
     
-    # Add current user message
     messages.append({"role": "user", "content": user_message})
     
     try:
-        if GROQ_IMPORT_METHOD == "new":
-            chat_completion = groq_client.chat.completions.create(
-                messages=messages,
-                model="llama3-70b-8192",  # Using Llama 3 70B model
-                temperature=0.7,  # Add some creativity for conversational responses
-                top_p=0.9
-            )
-            return chat_completion.choices[0].message.content
-        else:
-            # Use old groq API method
-            chat_completion = groq.chat.completions.create(
-                messages=messages,
-                model="llama3-70b-8192",
-                temperature=0.7,
-                top_p=0.9
-            )
-            return chat_completion.choices[0].message.content
+        # Use the groq_client that we initialized at the top
+        chat_completion = groq_client.chat.completions.create(
+            messages=messages,
+            model="llama3-70b-8192",
+            temperature=0.7,
+            top_p=0.9
+        )
+        return chat_completion.choices[0].message.content
+    except AttributeError as e:
+        logger.error(f"Groq API AttributeError: {str(e)}")
+        return "Error: The Groq package appears to be outdated. Please update it with: pip install --upgrade groq>=0.4.0"
     except Exception as e:
         logger.error(f"Groq API error: {str(e)}")
-        return f"Error connecting to Groq API: {str(e)}"
+        return f"Error connecting to AI service: {str(e)}"
 
-# Database functions
 def execute_ai_commands(ai_response, database='DataQuality'):
-    # Extract SQL commands from AI response
     sql_commands = re.findall(r'<SQL>(.*?)</SQL>', ai_response, re.DOTALL)
     
     if not sql_commands:
-        return None  # Return None instead of a message
+        return None
     
     results = []
     for sql in sql_commands:
-        # Trim whitespace and remove any extra quotes
         sql = sql.strip()
         results.append(execute_sql(sql, database))
     
@@ -348,7 +318,6 @@ def execute_sql(sql, database='DataQuality'):
     try:
         logger.info(f"Executing SQL on database {database}: {sql}")
         
-        # Create a new config with the specified database
         db_config = DB_CONFIG.copy()
         db_config['database'] = database
         
@@ -388,9 +357,6 @@ def execute_sql(sql, database='DataQuality'):
             "database": database
         }
 
-# Main entry point
 if __name__ == '__main__':
-    # Get PORT from environment variable (for Railway deployment)
     port = int(os.environ.get('PORT', 5000))
-    # Use 0.0.0.0 to make the app accessible externally
     app.run(host='0.0.0.0', port=port, debug=False)
