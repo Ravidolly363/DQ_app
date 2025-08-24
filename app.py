@@ -30,7 +30,7 @@ DB_CONFIG = {
 }
 
 # Initialize Groq client with API key from environment variable
-groq.api_key = os.environ.get('GROQ_API_KEY', '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')
+groq.api_key = os.environ.get('GROQ_API_KEY', 'GROQ_API_KEY')
 
 
 # Main routes
