@@ -18,7 +18,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-app.template_folder = 'Templates'  # Use capital T if your folder is named "Templates"
+app.template_folder = 'templates'  # Use capital T if your folder is named "Templates"
 app.secret_key = os.environ.get('FLASK_SECRET_KEY', os.urandom(24))
 
 # Database configuration from environment variables
