@@ -1,12 +1,21 @@
+# Web framework
 Flask==2.3.3
 Werkzeug==2.3.7
 Jinja2==3.1.2
 itsdangerous==2.1.2
 click==8.1.7
+
+# Database
 mysql-connector-python==8.0.32
+protobuf==3.20.3
+
+# API Client
 groq==0.3.0
 httpx==0.24.1
-protobuf==3.20.3
 requests==2.31.0
+
+# Deployment
 gunicorn==21.2.0
+
+# Environment variables
 python-dotenv==1.0.0
