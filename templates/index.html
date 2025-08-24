@@ -1,0 +1,2570 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Data Quality Assistant</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        /* Root variables for Deepseek-inspired color scheme */
+        :root {
+            /* Light Mode */
+            --bg-color: #ffffff;
+            --sidebar-bg: #f9f9fa;
+            --header-bg-color: #ffffff;
+            --text-color: #1a1a1a;
+            --secondary-text-color: #666666;
+            --border-color: #e6e6e6;
+            --user-bg-color: #f7f7f8;
+            --assistant-bg-color: #ffffff;
+            --primary-color: #2563eb;  /* Deepseek blue */
+            --primary-light: #eef2ff;  /* Light blue */
+            --primary-hover-color: #1d4ed8;  /* Darker blue */
+            --button-bg-color: #f2f2f2;
+            --button-hover-color: #e5e5e5;
+            --button-text-color: #444654;
+            --code-bg-color: #f8fafc;  /* Improved code background */
+            --code-border-color: #e2e8f0; /* Code border color */
+            --result-bg-color: #f8f8fb;
+            --error-bg-color: #fef2f2;
+            --welcome-bg-color: #ffffff;
+            --example-bg-color: #f9f9fa;
+            --example-hover-color: #f0f0f5;
+            --table-header-bg: #f8f9fa;
+            --table-even-row-bg: #fafbfc;
+            --table-hover-bg: #f0f7ff;
+            --box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            --input-bg-color: #ffffff;
+            --active-chat-bg: #eef2ff;
+            --hover-chat-bg: #f5f7ff;
+            --favorite-color: #f59e0b;
+        }
+        
+        /* Dark theme (team mode) */
+        body.team-mode {
+            --bg-color: #131524;  /* Deepseek dark blue */
+            --sidebar-bg: #1a1d30;  /* Slightly lighter blue */
+            --header-bg-color: #1a1d30;
+            --text-color: #e0e0e0;
+            --secondary-text-color: #a0a0a0;
+            --border-color: #2e324a;  /* Dark blue border */
+            --user-bg-color: #1e2235;  /* User message bg */
+            --assistant-bg-color: #1a1d30;  /* Assistant message bg */
+            --primary-color: #4f6bff;  /* Deepseek blue in dark mode */
+            --primary-light: #1e2235;
+            --primary-hover-color: #6d87ff;
+            --button-bg-color: #252a41;
+            --button-hover-color: #303650;
+            --button-text-color: #e0e0e0;
+            --code-bg-color: #1e2235;  /* Dark code background */
+            --code-border-color: #303650; /* Dark code border */
+            --result-bg-color: #252a41;
+            --error-bg-color: #4c3030;
+            --welcome-bg-color: #1a1d30;
+            --example-bg-color: #252a41;
+            --example-hover-color: #303650;
+            --table-header-bg: #252a41;
+            --table-even-row-bg: #1e2235;
+            --table-hover-bg: #303650;
+            --box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            --input-bg-color: #252a41;
+            --active-chat-bg: #252a41;
+            --hover-chat-bg: #303650;
+            --favorite-color: #f59e0b;
+        }
+        
+        /* Special color adjustments for better contrast */
+        #send-btn, .new-chat-btn {
+            color: white !important; /* Ensure text is white on colored buttons */
+        }
+        
+        .table-caption {
+            color: white !important; /* Ensure caption text is white */
+        }
+        
+        .assistant-avatar {
+            color: white !important; /* Light text on dark background in avatar */
+        }
+        
+        /* Side panel styles */
+        .app-container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        .app {
+            display: flex;
+            height: 100%;
+            width: 100%;
+            transition: transform 0.3s ease;
+        }
+        
+        .side-output-panel {
+            position: absolute;
+            top: 0;
+            right: -550px;
+            width: 550px;
+            height: 100%;
+            background-color: var(--bg-color);
+            border-left: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            transition: right 0.3s ease;
+            z-index: 200;
+            box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .side-output-panel.open {
+            right: 0;
+        }
+        
+        .side-panel-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: var(--header-bg-color);
+        }
+        
+        .side-panel-title {
+            font-weight: 600;
+            font-size: 16px;
+            color: var(--text-color);
+        }
+        
+        .close-panel-btn {
+            background: transparent;
+            border: none;
+            color: var(--secondary-text-color);
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+        }
+        
+        .close-panel-btn:hover {
+            background-color: var(--button-bg-color);
+            color: var(--text-color);
+        }
+        
+        .side-panel-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+        }
+        
+        .expand-output-btn {
+            position: absolute;
+            right: 12px;
+            top: 12px;
+            background-color: var(--primary-light);
+            color: var(--primary-color);
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            z-index: 10;
+        }
+        
+        .expand-output-btn:hover {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        /* Enhanced code block styling */
+        .sql-block, .code-block {
+            background-color: var(--code-bg-color);
+            padding: 16px;
+            border-radius: 8px;
+            margin: 12px 0;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            overflow-x: auto;
+            border: 1px solid var(--code-border-color);
+            position: relative;
+            transition: background 0.3s;
+        }
+        
+        .code-header {
+            position: absolute;
+            top: 0;
+            right: 0;
+            padding: 4px 8px;
+            font-size: 12px;
+            color: var(--secondary-text-color);
+            background-color: var(--code-bg-color);
+            border-bottom-left-radius: 6px;
+            border: 1px solid var(--code-border-color);
+            border-top: none;
+            border-right: none;
+        }
+        
+        .code-expand-btn {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background: transparent;
+            border: none;
+            color: var(--secondary-text-color);
+            cursor: pointer;
+            padding: 4px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        
+        .sql-block:hover .code-expand-btn,
+        .code-block:hover .code-expand-btn {
+            opacity: 1;
+        }
+        
+        /* Base styles */
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 0;
+            transition: all 0.3s ease;
+        }
+        
+        /* App layout with sidebar */
+        .app {
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+        }
+        
+        /* Sidebar styles */
+        .sidebar {
+            width: 260px;
+            background-color: var(--sidebar-bg);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s ease;
+            z-index: 100;
+        }
+        
+        .sidebar-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .new-chat-btn {
+            width: 100%;
+            padding: 10px 16px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: background 0.2s;
+        }
+        
+        .new-chat-btn:hover {
+            background-color: var(--primary-hover-color);
+        }
+        
+        .chat-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
+        }
+        
+        .chat-item {
+            padding: 12px 16px;
+            border-radius: 6px;
+            margin-bottom: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            transition: background 0.2s;
+            font-size: 14px;
+            color: var(--text-color);
+            position: relative;
+        }
+        
+        .chat-item:hover {
+            background-color: var(--hover-chat-bg);
+        }
+        
+        .chat-item.active {
+            background-color: var(--active-chat-bg);
+            font-weight: 500;
+        }
+        
+        .chat-icon {
+            margin-right: 12px;
+            color: var(--secondary-text-color);
+            flex-shrink: 0;
+        }
+        
+        .chat-favorite {
+            color: var(--favorite-color);
+        }
+        
+        .chat-text {
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .chat-database {
+            font-size: 11px;
+            color: var(--secondary-text-color);
+            display: block;
+            margin-top: 2px;
+        }
+        
+        .chat-actions {
+            opacity: 0;
+            transition: opacity 0.2s;
+            margin-left: 4px;
+            position: relative;
+        }
+        
+        .chat-item:hover .chat-actions {
+            opacity: 1;
+        }
+        
+        .chat-menu-btn {
+            background: transparent;
+            border: none;
+            color: var(--secondary-text-color);
+            padding: 4px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        
+        .chat-menu-btn:hover {
+            background-color: var(--button-bg-color);
+        }
+        
+        .chat-dropdown {
+            position: absolute;
+            right: 0;
+            top: 100%;
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            width: 150px;
+            z-index: 10;
+            display: none;
+        }
+        
+        .chat-dropdown.show {
+            display: block;
+        }
+        
+        .dropdown-item {
+            padding: 8px 12px;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .dropdown-item:hover {
+            background-color: var(--hover-chat-bg);
+        }
+        
+        .sidebar-footer {
+            padding: 16px;
+            border-top: 1px solid var(--border-color);
+        }
+        
+        /* Modal dialog for database selection */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .modal-container {
+            background-color: var(--bg-color);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            width: 90%;
+            max-width: 400px;
+            padding: 24px;
+            transform: translateY(-20px);
+            transition: all 0.3s ease;
+        }
+        
+        .modal-overlay.active .modal-container {
+            transform: translateY(0);
+        }
+        
+        .modal-header {
+            margin-bottom: 16px;
+        }
+        
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-color);
+            margin: 0;
+        }
+        
+        .modal-body {
+            margin-bottom: 24px;
+        }
+        
+        .form-group {
+            margin-bottom: 16px;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: var(--text-color);
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 10px 12px;
+            font-size: 14px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background-color: var(--input-bg-color);
+            color: var(--text-color);
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px var(--primary-light);
+        }
+        
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+        
+        .btn-modal {
+            padding: 8px 16px;
+            font-size: 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+        
+        .btn-secondary {
+            background-color: var(--button-bg-color);
+            color: var(--button-text-color);
+        }
+        
+        .btn-secondary:hover {
+            background-color: var(--button-hover-color);
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--primary-hover-color);
+        }
+        
+        /* Container styles */
+        .container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            transition: all 0.3s ease;
+            background-color: var(--bg-color);
+        }
+        
+        /* Mobile sidebar handling */
+        .sidebar-toggle {
+            display: none;
+            background: transparent;
+            border: none;
+            color: var(--text-color);
+            font-size: 20px;
+            cursor: pointer;
+            padding: 8px;
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                left: -260px;
+                height: 100vh;
+                box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            }
+            
+            .sidebar.open {
+                left: 0;
+            }
+            
+            .sidebar-toggle {
+                display: block;
+            }
+            
+            .overlay {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background-color: rgba(0,0,0,0.5);
+                z-index: 99;
+            }
+            
+            .overlay.active {
+                display: block;
+            }
+            
+            .side-output-panel {
+                width: 100%;
+                right: -100%;
+            }
+        }
+        
+        /* Header styles */
+        .header {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-color);
+            background-color: var(--header-bg-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+        
+        .logo {
+            font-weight: 600;
+            font-size: 16px;
+            color: var(--text-color);
+            display: flex;
+            align-items: center;
+        }
+        
+        .current-database {
+            font-size: 12px;
+            color: var(--secondary-text-color);
+            margin-left: 12px;
+            padding: 4px 8px;
+            background-color: var(--button-bg-color);
+            border-radius: 4px;
+        }
+        
+        .header-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        
+        .btn {
+            background: var(--button-bg-color);
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            color: var(--button-text-color);
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .btn:hover {
+            background: var(--button-hover-color);
+        }
+        
+        .btn-icon {
+            background: transparent;
+            border: none;
+            padding: 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            color: var(--secondary-text-color);
+            transition: all 0.2s;
+        }
+        
+        .btn-icon:hover {
+            background: var(--button-bg-color);
+            color: var(--text-color);
+        }
+        
+        .toggle-container {
+            display: flex;
+            align-items: center;
+        }
+        
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 46px;
+            height: 24px;
+        }
+        
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--button-bg-color);
+            border-radius: 24px;
+            transition: .3s;
+        }
+        
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            border-radius: 50%;
+            transition: .3s;
+        }
+        
+        input:checked + .toggle-slider {
+            background-color: var(--primary-color);
+        }
+        
+        input:focus + .toggle-slider {
+            box-shadow: 0 0 1px var(--primary-color);
+        }
+        
+        input:checked + .toggle-slider:before {
+            transform: translateX(22px);
+        }
+        
+        /* Chat container */
+        #chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            transition: background 0.3s;
+            scroll-behavior: smooth;
+        }
+        
+        .message-row {
+            padding: 16px 24px;
+            animation: fadeIn 0.3s ease-out;
+            transition: background 0.3s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .user-row {
+            background-color: var(--user-bg-color);
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .assistant-row {
+            background-color: var(--assistant-bg-color);
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .message-container {
+            max-width: 800px;
+            margin: 0 auto;
+            transition: max-width 0.3s;
+        }
+        
+        body.fullscreen-mode .message-container {
+            max-width: 1000px;
+        }
+        
+        .message-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: var(--secondary-text-color);
+        }
+        
+        .avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            margin-right: 10px;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .user-avatar {
+            background-color: #3b82f6;
+        }
+        
+        .assistant-avatar {
+            background-color: var(--primary-color);
+        }
+        
+        .message-content {
+            white-space: pre-wrap;
+            overflow-wrap: break-word;
+            line-height: 1.6;
+        }
+        
+        .result-block {
+            background-color: var(--result-bg-color);
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin: 12px 0;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+            font-size: 14px;
+            overflow-x: auto;
+            border-left: 3px solid var(--primary-color);
+            max-height: 300px;
+            overflow-y: auto;
+            transition: background 0.3s;
+        }
+        
+        .error-block {
+            background-color: var(--error-bg-color);
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin: 12px 0;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+            font-size: 14px;
+            overflow-x: auto;
+            border-left: 3px solid #f44336;
+            transition: background 0.3s;
+        }
+        
+        .input-area {
+            padding: 16px 24px;
+            background-color: var(--header-bg-color);
+            border-top: 1px solid var(--border-color);
+            transition: background 0.3s;
+        }
+        
+        .input-container {
+            display: flex;
+            background-color: var(--input-bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 8px 16px;
+            box-shadow: var(--box-shadow);
+            transition: all 0.3s;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .input-container:focus-within {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px var(--primary-light);
+        }
+        
+        body.fullscreen-mode .input-container {
+            max-width: 1000px;
+        }
+        
+        #user-input {
+            flex: 1;
+            border: none;
+            padding: 10px 0;
+            font-size: 15px;
+            outline: none;
+            resize: none;
+            line-height: 1.5;
+            max-height: 200px;
+            font-family: inherit;
+            background-color: transparent;
+            color: var(--text-color);
+            transition: color 0.3s;
+        }
+        
+        #send-btn {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 16px;
+            margin-left: 12px;
+            cursor: pointer;
+            font-size: 14px;
+            align-self: flex-end;
+            transition: background 0.2s;
+        }
+        
+        #send-btn:hover {
+            background: var(--primary-hover-color);
+        }
+        
+        #send-btn:disabled {
+            background: var(--button-bg-color);
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+        
+        .welcome-message {
+            padding: 24px;
+            background-color: var(--welcome-bg-color);
+            border-radius: 12px;
+            margin: 24px;
+            box-shadow: var(--box-shadow);
+            transition: background 0.3s;
+            max-width: 800px;
+            align-self: center;
+            border: 1px solid var(--border-color);
+        }
+        
+        body.fullscreen-mode .welcome-message {
+            max-width: 1000px;
+        }
+        
+        .welcome-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--primary-color);
+        }
+        
+        .example-queries {
+            margin-top: 16px;
+        }
+        
+        .example-query {
+            padding: 10px 14px;
+            background-color: var(--example-bg-color);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border-color);
+        }
+        
+        .example-query:hover {
+            background-color: var(--example-hover-color);
+            border-color: var(--primary-color);
+        }
+        
+        .timestamp {
+            font-size: 12px;
+            color: var(--secondary-text-color);
+            margin-top: 8px;
+        }
+        
+        .typing-indicator {
+            display: inline-block;
+        }
+        
+        .typing-indicator .dot {
+            display: inline-block;
+            opacity: 0.3;
+            transition: opacity 0.15s;
+        }
+        
+        /* Enhanced table styles */
+        .result-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 14px;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: var(--box-shadow);
+            border: 1px solid var(--border-color);
+        }
+        
+        .result-table th {
+            background-color: var(--table-header-bg);
+            color: var(--text-color);
+            font-weight: 600;
+            text-align: left;
+            padding: 12px 16px;
+            border-bottom: 2px solid var(--border-color);
+        }
+        
+        .result-table td {
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--border-color);
+            border-right: 1px solid var(--border-color);
+            color: var(--text-color);
+        }
+        
+        .result-table tr:nth-child(even) {
+            background-color: var(--table-even-row-bg);
+        }
+        
+        .result-table tr:hover {
+            background-color: var(--table-hover-bg);
+        }
+        
+        .result-table tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .result-table td:last-child {
+            border-right: none;
+        }
+        
+        .table-container {
+            margin: 16px 0;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: var(--box-shadow);
+            position: relative;
+        }
+        
+        .table-caption {
+            padding: 10px 16px;
+            background-color: var(--primary-color);
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        /* Icon styles */
+        .icon {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+        }
+        
+        /* Mobile optimization */
+        @media (max-width: 768px) {
+            .header {
+                padding: 12px 16px;
+            }
+            
+            .message-row {
+                padding: 16px;
+            }
+            
+            .message-container {
+                max-width: 100%;
+            }
+            
+            .input-area {
+                padding: 16px;
+            }
+            
+            .input-container {
+                padding: 8px;
+            }
+            
+            #user-input {
+                font-size: 14px;
+            }
+            
+            #send-btn {
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+            
+            .welcome-message {
+                margin: 16px;
+                padding: 16px;
+            }
+            
+            .table-container {
+                overflow-x: auto;
+            }
+        }
+
+        /* Claude-style features */
+        .copy-code-btn {
+            position: absolute;
+            top: 4px;
+            right: 36px; /* Position next to expand button */
+            background: transparent;
+            border: none;
+            color: var(--secondary-text-color);
+            cursor: pointer;
+            padding: 4px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .sql-block:hover .copy-code-btn,
+        .code-block:hover .copy-code-btn {
+            opacity: 1;
+        }
+
+        .response-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .response-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 4px;
+            background-color: var(--primary-light);
+            color: var(--primary-color);
+            border: none;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .response-btn:hover {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .char-counter {
+            position: absolute;
+            right: 60px;
+            bottom: 10px;
+            font-size: 12px;
+            color: var(--secondary-text-color);
+        }
+
+        .stop-btn {
+            background-color: var(--error-bg-color);
+            color: #f44336;
+        }
+
+        .stop-btn:hover {
+            background-color: #f44336;
+            color: white;
+        }
+
+        .copied-toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--primary-color);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 4px;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .copied-toast.show {
+            opacity: 1;
+        }
+
+        .thinking-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 0;
+        }
+
+        .thinking-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .thinking-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--primary-color);
+            opacity: 0.3;
+            animation: pulse 1.5s infinite;
+        }
+
+        .thinking-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .thinking-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+
+        .truncated-notice {
+            padding: 8px 16px;
+            margin-top: 12px;
+            background-color: var(--primary-light);
+            border-radius: 4px;
+            color: var(--primary-color);
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="overlay" id="overlay"></div>
+        <div class="app">
+            <!-- Sidebar -->
+            <div class="sidebar" id="sidebar">
+                <div class="sidebar-header">
+                    <button class="new-chat-btn" onclick="showDatabaseModal()">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 4V20M4 12H20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                        New Chat
+                    </button>
+                </div>
+                <div class="chat-list" id="chat-list">
+                    <!-- Chat history items will be populated here -->
+                    <div class="chat-item active" data-id="default" data-db="DataQuality">
+                        <span class="chat-icon">
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 12H19M19 12L16 15M19 12L16 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M19 6V5C19 3.89543 18.1046 3 17 3H7C5.89543 3 5 3.89543 5 5V19C5 20.1046 5.89543 21 7 21H17C18.1046 21 19 20.1046 19 19V18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </span>
+                        <div>
+                            <div class="chat-text">Current Chat</div>
+                            <div class="chat-database">DB: DataQuality</div>
+                        </div>
+                        <div class="chat-actions">
+                            <button class="chat-menu-btn" onclick="toggleChatMenu(event, 'default')">
+                                <svg class="icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M12 13C12.5523 13 13 12.5523 13 12C13 11.4477 12.5523 11 12 11C11.4477 11 11 11.4477 11 12C11 12.5523 11.4477 13 12 13Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M19 13C19.5523 13 20 12.5523 20 12C20 11.4477 19.5523 11 19 11C18.4477 11 18 11.4477 18 12C18 12.5523 18.4477 13 19 13Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M5 13C5.55228 13 6 12.5523 6 12C6 11.4477 5.55228 11 5 11C4.44772 11 4 11.4477 4 12C4 12.5523 4.44772 13 5 13Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </button>
+                            <div class="chat-dropdown" id="dropdown-default">
+                                <div class="dropdown-item" onclick="toggleFavorite('default')">
+                                    <svg class="icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M12 17.27L18.18 21L16.54 13.97L22 9.24L14.81 8.63L12 2L9.19 8.63L2 9.24L7.46 13.97L5.82 21L12 17.27Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                    <span>Favorite</span>
+                                </div>
+                                <div class="dropdown-item" onclick="deleteChat('default')">
+                                    <svg class="icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M6 19C6 20.1 6.9 21 8 21H16C17.1 21 18 20.1 18 19V7H6V19ZM19 4H15.5L14.5 3H9.5L8.5 4H5V6H19V4Z" fill="currentColor"/>
+                                    </svg>
+                                    <span>Delete</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="sidebar-footer">
+                    <div class="toggle-container">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="team-mode-toggle" onchange="toggleTeamMode()">
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <span style="margin-left: 8px; font-size: 14px; color: var(--secondary-text-color);">Dark Mode</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Main Content -->
+            <div class="container">
+                <div class="header">
+                    <div class="logo">
+                        <button class="btn-icon sidebar-toggle" id="sidebar-toggle" aria-label="Toggle Sidebar">
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M4 6H20M4 12H20M4 18H20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            </svg>
+                        </button>
+                        <span style="margin-left: 8px;">Data Quality Assistant</span>
+                        <span class="current-database" id="current-database">DB: DataQuality</span>
+                    </div>
+                    <div class="header-actions">
+                        <button class="btn-icon" id="fullscreen-toggle" onclick="toggleFullscreen()" aria-label="Toggle Fullscreen">
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M4 4H20V20H4V4M6 8V18H18V8H6Z" fill="currentColor"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="chat-container">
+                    <div class="welcome-message">
+                        <div class="welcome-title">Welcome to the Data Quality Assistant</div>
+                        <p>I can help you with database operations, data quality checks, and cleaning tasks. I can execute SQL commands directly on your database.</p>
+                        
+                        <div class="example-queries">
+                            <div><strong>Try asking me:</strong></div>
+                            <div class="example-query" onclick="useExample(this)">Create a table called customer_data with columns id (integer primary key), name, email, and phone</div>
+                            <div class="example-query" onclick="useExample(this)">Find missing values in the email column of customer_data table</div>
+                            <div class="example-query" onclick="useExample(this)">What SQL code have you executed so far?</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="input-area">
+                    <div class="input-container">
+                        <textarea id="user-input" placeholder="Ask about data quality or request database operations..." rows="1" oninput="autoResize(this)"></textarea>
+                        <button id="send-btn" onclick="sendMessage()">Send</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Side Output Panel -->
+        <div class="side-output-panel" id="side-output-panel">
+            <div class="side-panel-header">
+                <div class="side-panel-title">Result Output</div>
+                <button class="close-panel-btn" onclick="closeSidePanel()">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M6 18L18 6M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="side-panel-content" id="side-panel-content">
+                <!-- Content will be dynamically added here -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- Database Selection Modal -->
+    <div class="modal-overlay" id="database-modal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3 class="modal-title">Select Database</h3>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="database-name" class="form-label">Database Name:</label>
+                    <input type="text" id="database-name" class="form-control" placeholder="Enter database name">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-modal btn-secondary" onclick="closeModal()">Cancel</button>
+                <button class="btn-modal btn-primary" onclick="createNewChatWithDb()">Create Chat</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isSending = false;
+        const chatContainer = document.getElementById('chat-container');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('overlay');
+        const sidebarToggle = document.getElementById('sidebar-toggle');
+        const chatList = document.getElementById('chat-list');
+        const databaseModal = document.getElementById('database-modal');
+        const currentDatabaseElement = document.getElementById('current-database');
+        let chatHistory = {};  // Store chat histories by ID
+        let currentChatId = 'default';
+        let currentDatabase = 'DataQuality';  // Default database
+        let activeDropdown = null;
+        // Global AbortController
+        let currentAbortController = null;
+        
+        // Side panel functions
+        function openSidePanel(content, title = "Result Output") {
+            const panel = document.getElementById('side-output-panel');
+            const panelContent = document.getElementById('side-panel-content');
+            const panelTitle = document.querySelector('.side-panel-title');
+            
+            // Set content and title
+            panelContent.innerHTML = content;
+            panelTitle.textContent = title;
+            
+            // Open panel
+            panel.classList.add('open');
+        }
+        
+        function closeSidePanel() {
+            const panel = document.getElementById('side-output-panel');
+            panel.classList.remove('open');
+        }
+        
+        // Function to expand a result to the side panel
+        function expandToSidePanel(buttonElement) {
+            const tableContainer = buttonElement.closest('.table-container');
+            const tableCaption = tableContainer.querySelector('.table-caption').textContent;
+            
+            // Clone the table container for the side panel
+            const clonedContent = tableContainer.cloneNode(true);
+            
+            // Remove the expand button from the cloned content
+            const expandBtn = clonedContent.querySelector('.expand-output-btn');
+            if (expandBtn) {
+                expandBtn.remove();
+            }
+            
+            // Open the side panel with the cloned content
+            openSidePanel(clonedContent.outerHTML, tableCaption);
+        }
+        
+        // Function to expand code to side panel
+        function expandCodeToSidePanel(buttonElement) {
+            const codeBlock = buttonElement.closest('.sql-block') || buttonElement.closest('.code-block');
+            const codeType = codeBlock.classList.contains('sql-block') ? 'SQL Code' : 'Code';
+            
+            // Clone the code block for the side panel
+            const clonedContent = codeBlock.cloneNode(true);
+            
+            // Remove the expand button from the cloned content
+            const expandBtn = clonedContent.querySelector('.code-expand-btn');
+            if (expandBtn) {
+                expandBtn.remove();
+            }
+            
+            // Open the side panel with the cloned content
+            openSidePanel(clonedContent.outerHTML, codeType);
+        }
+        
+        // Toggle sidebar on mobile
+        sidebarToggle.addEventListener('click', function() {
+            sidebar.classList.toggle('open');
+            overlay.classList.toggle('active');
+        });
+        
+        overlay.addEventListener('click', function() {
+            sidebar.classList.remove('open');
+            overlay.classList.remove('active');
+            closeAllDropdowns();
+        });
+        
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.chat-menu-btn') && !e.target.closest('.chat-dropdown')) {
+                closeAllDropdowns();
+            }
+        });
+        
+        // Check for saved preferences
+        function initPreferences() {
+            // Theme preference
+            const teamMode = localStorage.getItem('teamMode') === 'true';
+            document.getElementById('team-mode-toggle').checked = teamMode;
+            if (teamMode) {
+                document.body.classList.add('team-mode');
+            }
+            
+            // Fullscreen preference
+            const fullscreenMode = localStorage.getItem('fullscreenMode') === 'true';
+            if (fullscreenMode) {
+                document.body.classList.add('fullscreen-mode');
+            }
+            
+            // Load chat list
+            loadChatList();
+            
+            // Load favorite chats
+            loadFavorites();
+        }
+        
+        // Show database selection modal
+        function showDatabaseModal() {
+            databaseModal.classList.add('active');
+            document.getElementById('database-name').focus();
+        }
+        
+        // Close modal
+        function closeModal() {
+            databaseModal.classList.remove('active');
+        }
+        
+        // Create new chat with selected database
+        function createNewChatWithDb() {
+            const dbName = document.getElementById('database-name').value.trim();
+            if (dbName === '') {
+                alert('Please enter a database name');
+                return;
+            }
+            
+            createNewChat(dbName);
+            closeModal();
+            document.getElementById('database-name').value = '';
+        }
+        
+        // Toggle theme mode
+        function toggleTeamMode() {
+            const teamMode = document.getElementById('team-mode-toggle').checked;
+            if (teamMode) {
+                document.body.classList.add('team-mode');
+            } else {
+                document.body.classList.remove('team-mode');
+            }
+            localStorage.setItem('teamMode', teamMode);
+        }
+        
+        // Toggle fullscreen mode
+        function toggleFullscreen() {
+            const isFullscreen = document.body.classList.toggle('fullscreen-mode');
+            localStorage.setItem('fullscreenMode', isFullscreen);
+        }
+        
+        // Load favorite chats
+        function loadFavorites() {
+            try {
+                const favorites = JSON.parse(localStorage.getItem('favoriteChats') || '[]');
+                favorites.forEach(id => {
+                    const chatItem = document.querySelector(`.chat-item[data-id="${id}"]`);
+                    if (chatItem) {
+                        const chatIcon = chatItem.querySelector('.chat-icon');
+                        chatIcon.classList.add('chat-favorite');
+                    }
+                });
+            } catch (e) {
+                console.error('Error loading favorites:', e);
+            }
+        }
+        
+        // Toggle favorite status of a chat
+        function toggleFavorite(id) {
+            try {
+                const favorites = JSON.parse(localStorage.getItem('favoriteChats') || '[]');
+                const chatItem = document.querySelector(`.chat-item[data-id="${id}"]`);
+                const chatIcon = chatItem.querySelector('.chat-icon');
+                
+                const index = favorites.indexOf(id);
+                if (index === -1) {
+                    // Add to favorites
+                    favorites.push(id);
+                    chatIcon.classList.add('chat-favorite');
+                } else {
+                    // Remove from favorites
+                    favorites.splice(index, 1);
+                    chatIcon.classList.remove('chat-favorite');
+                }
+                
+                localStorage.setItem('favoriteChats', JSON.stringify(favorites));
+                closeAllDropdowns();
+            } catch (e) {
+                console.error('Error toggling favorite:', e);
+            }
+        }
+        
+        // Toggle chat menu dropdown
+        function toggleChatMenu(event, id) {
+            event.stopPropagation();
+            closeAllDropdowns();
+            
+            const dropdown = document.getElementById(`dropdown-${id}`);
+            if (dropdown) {
+                dropdown.classList.toggle('show');
+                activeDropdown = dropdown.classList.contains('show') ? dropdown : null;
+            }
+        }
+        
+        // Close all dropdown menus
+        function closeAllDropdowns() {
+            const dropdowns = document.querySelectorAll('.chat-dropdown.show');
+            dropdowns.forEach(dropdown => {
+                dropdown.classList.remove('show');
+            });
+            activeDropdown = null;
+        }
+        
+        // Load chat list from localStorage
+        function loadChatList() {
+            try {
+                const savedChats = localStorage.getItem('chatList');
+                if (savedChats) {
+                    const chats = JSON.parse(savedChats);
+                    
+                    // Clear existing items except the default
+                    while (chatList.children.length > 1) {
+                        chatList.removeChild(chatList.lastChild);
+                    }
+                    
+                    // Load saved chat histories
+                    const savedHistories = localStorage.getItem('chatHistories');
+                    if (savedHistories) {
+                        chatHistory = JSON.parse(savedHistories);
+                    }
+                    
+                    // Add chats to the list
+                    chats.forEach(chat => {
+                        if (chat.id !== 'default') {
+                            addChatToList(chat.id, chat.title, chat.database, false);
+                        }
+                    });
+                }
+            } catch (e) {
+                console.error('Error loading chat list:', e);
+            }
+        }
+        
+        // Save chat list to localStorage
+        function saveChatList() {
+            try {
+                const chats = Array.from(chatList.children).map(item => {
+                    return {
+                        id: item.dataset.id || 'default',
+                        title: item.querySelector('.chat-text').textContent.trim(),
+                        database: item.dataset.db || 'DataQuality'
+                    };
+                });
+                localStorage.setItem('chatList', JSON.stringify(chats));
+            } catch (e) {
+                console.error('Error saving chat list:', e);
+            }
+        }
+        
+        // Save chat histories to localStorage
+        function saveChatHistories() {
+            try {
+                localStorage.setItem('chatHistories', JSON.stringify(chatHistory));
+            } catch (e) {
+                console.error('Error saving chat histories:', e);
+            }
+        }
+        
+        // Add a chat to the list
+        function addChatToList(id, title, database, setActive = true) {
+            const chatItem = document.createElement('div');
+            chatItem.className = 'chat-item';
+            chatItem.dataset.id = id;
+            chatItem.dataset.db = database;
+            
+            if (setActive) {
+                chatItem.classList.add('active');
+                
+                // Remove active class from other items
+                const activeItems = chatList.querySelectorAll('.chat-item.active');
+                activeItems.forEach(item => {
+                    if (item !== chatItem) {
+                        item.classList.remove('active');
+                    }
+                });
+            }
+            
+            chatItem.innerHTML = `
+                <span class="chat-icon">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 12H19M19 12L16 15M19 12L16 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M19 6V5C19 3.89543 18.1046 3 17 3H7C5.89543 3 5 3.89543 5 5V19C5 20.1046 5.89543 21 7 21H17C18.1046 21 19 20.1046 19 19V18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </span>
+                <div>
+                    <div class="chat-text">${title}</div>
+                    <div class="chat-database">DB: ${database}</div>
+                </div>
+                <div class="chat-actions">
+                    <button class="chat-menu-btn" onclick="toggleChatMenu(event, '${id}')">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 13C12.5523 13 13 12.5523 13 12C13 11.4477 12.5523 11 12 11C11.4477 11 11 11.4477 11 12C11 12.5523 11.4477 13 12 13Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M19 13C19.5523 13 20 12.5523 20 12C20 11.4477 19.5523 11 19 11C18.4477 11 18 11.4477 18 12C18 12.5523 18.4477 13 19 13Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M5 13C5.55228 13 6 12.5523 6 12C6 11.4477 5.55228 11 5 11C4.44772 11 4 11.4477 4 12C4 12.5523 4.44772 13 5 13Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                    <div class="chat-dropdown" id="dropdown-${id}">
+                        <div class="dropdown-item" onclick="toggleFavorite('${id}')">
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 17.27L18.18 21L16.54 13.97L22 9.24L14.81 8.63L12 2L9.19 8.63L2 9.24L7.46 13.97L5.82 21L12 17.27Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            <span>Favorite</span>
+                        </div>
+                        <div class="dropdown-item" onclick="deleteChat('${id}')">
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M6 19C6 20.1 6.9 21 8 21H16C17.1 21 18 20.1 18 19V7H6V19ZM19 4H15.5L14.5 3H9.5L8.5 4H5V6H19V4Z" fill="currentColor"/>
+                            </svg>
+                            <span>Delete</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            chatItem.addEventListener('click', function(e) {
+                // Don't trigger click if clicking the menu button or dropdown
+                if (!e.target.closest('.chat-menu-btn') && !e.target.closest('.chat-dropdown')) {
+                    loadChat(id);
+                }
+            });
+            
+            // Add to the beginning, after "New Chat"
+            chatList.insertBefore(chatItem, chatList.firstChild);
+            
+            saveChatList();
+        }
+        
+        // Create a new chat
+        function createNewChat(database = 'DataQuality') {
+            const id = 'chat_' + Date.now();
+            const title = 'New Chat';
+            
+            // Save current chat if needed
+            if (chatHistory[currentChatId]) {
+                saveChatHistories();
+            }
+            
+            currentChatId = id;
+            currentDatabase = database;
+            
+            // Update database display
+            currentDatabaseElement.textContent = `DB: ${database}`;
+            
+            addChatToList(id, title, database);
+            
+            // Initialize empty history for this chat
+            chatHistory[id] = [];
+            
+            // Clear chat container
+            chatContainer.innerHTML = '';
+            
+            // Add welcome message
+            const welcomeHtml = `
+                <div class="welcome-message">
+                    <div class="welcome-title">Welcome to the Data Quality Assistant</div>
+                    <p>I can help you with database operations, data quality checks, and cleaning tasks. I can execute SQL commands directly on your database.</p>
+                    <p>You are working with database: <strong>${database}</strong></p>
+                    
+                    <div class="example-queries">
+                        <div><strong>Try asking me:</strong></div>
+                        <div class="example-query" onclick="useExample(this)">Create a table called customer_data with columns id (integer primary key), name, email, and phone</div>
+                        <div class="example-query" onclick="useExample(this)">Find missing values in the email column of customer_data table</div>
+                        <div class="example-query" onclick="useExample(this)">What SQL code have you executed so far?</div>
+                    </div>
+                </div>
+            `;
+            chatContainer.innerHTML = welcomeHtml;
+            
+            // Clear server-side history
+            fetch('/clear_history', { method: 'POST' });
+            
+            // Close sidebar on mobile
+            sidebar.classList.remove('open');
+            overlay.classList.remove('active');
+        }
+        
+        // Delete a chat
+        function deleteChat(id) {
+            // Don't delete the active chat if it's the only one
+            if (document.querySelectorAll('.chat-item').length <= 1) {
+                alert("Cannot delete the only chat.");
+                return;
+            }
+            
+            // Remove from DOM
+            const chatItem = document.querySelector(`.chat-item[data-id="${id}"]`);
+            if (chatItem) {
+                chatList.removeChild(chatItem);
+            }
+            
+            // Remove from history
+            if (chatHistory[id]) {
+                delete chatHistory[id];
+                saveChatHistories();
+            }
+            
+            // If deleting the active chat, load another one
+            if (id === currentChatId) {
+                const firstChat = document.querySelector('.chat-item');
+                if (firstChat) {
+                    loadChat(firstChat.dataset.id);
+                } else {
+                    createNewChat();
+                }
+            }
+            
+            // Update chat list in localStorage
+            saveChatList();
+            
+            // Close dropdown
+            closeAllDropdowns();
+        }
+        
+        // Load a specific chat
+        function loadChat(id) {
+            // Save current chat
+            if (chatHistory[currentChatId]) {
+                saveChatHistories();
+            }
+            
+            currentChatId = id;
+            
+            // Set active class and get database
+            const items = chatList.querySelectorAll('.chat-item');
+            items.forEach(item => {
+                if (item.dataset.id === id) {
+                    item.classList.add('active');
+                    currentDatabase = item.dataset.db || 'DataQuality';
+                    
+                    // Update database display
+                    currentDatabaseElement.textContent = `DB: ${currentDatabase}`;
+                } else {
+                    item.classList.remove('active');
+                }
+            });
+            
+            // Clear chat container
+            chatContainer.innerHTML = '';
+            
+            // Load chat history from memory
+            const history = chatHistory[id] || [];
+            
+            if (history.length > 0) {
+                history.forEach(entry => {
+                    if (entry.role === 'user') {
+                        addUserMessage(entry.content, entry.timestamp);
+                    } else if (entry.role === 'assistant') {
+                        addAssistantMessage(entry.content, entry.result, entry.timestamp);
+                    }
+                });
+            } else {
+                // Add welcome message for empty chat
+                const welcomeHtml = `
+                    <div class="welcome-message">
+                        <div class="welcome-title">Welcome to the Data Quality Assistant</div>
+                        <p>I can help you with database operations, data quality checks, and cleaning tasks. I can execute SQL commands directly on your database.</p>
+                        <p>You are working with database: <strong>${currentDatabase}</strong></p>
+                        
+                        <div class="example-queries">
+                            <div><strong>Try asking me:</strong></div>
+                            <div class="example-query" onclick="useExample(this)">Create a table called customer_data with columns id (integer primary key), name, email, and phone</div>
+                            <div class="example-query" onclick="useExample(this)">Find missing values in the email column of customer_data table</div>
+                            <div class="example-query" onclick="useExample(this)">What SQL code have you executed so far?</div>
+                        </div>
+                    </div>
+                `;
+                chatContainer.innerHTML = welcomeHtml;
+            }
+            
+            // Clear server-side history
+            fetch('/clear_history', { method: 'POST' });
+            
+            // Close sidebar on mobile
+            sidebar.classList.remove('open');
+            overlay.classList.remove('active');
+        }
+        
+        // Load chat history on page load
+        window.onload = function() {
+            initPreferences();
+            
+            fetch('/history')
+                .then(response => response.json())
+                .then(history => {
+                    // Store the initial history
+                    chatHistory['default'] = history;
+                    
+                    if (history && history.length > 0) {
+                        // If first message is from user, use it as chat title
+                        if (history[0].role === 'user') {
+                            const firstMsg = history[0].content;
+                            // Update the default chat title
+                            const defaultChat = chatList.querySelector('.chat-item');
+                            if (defaultChat) {
+                                const chatText = defaultChat.querySelector('.chat-text');
+                                if (chatText) {
+                                    chatText.textContent = firstMsg.length > 20 ? firstMsg.substring(0, 20) + '...' : firstMsg;
+                                }
+                            }
+                        }
+                        
+                        // Remove welcome message if we have history
+                        const welcomeMsg = document.querySelector('.welcome-message');
+                        if (welcomeMsg) chatContainer.removeChild(welcomeMsg);
+                        
+                        // Display history
+                        history.forEach(entry => {
+                            if (entry.role === 'user') {
+                                addUserMessage(entry.content, entry.timestamp);
+                            } else if (entry.role === 'assistant') {
+                                addAssistantMessage(entry.content, entry.result, entry.timestamp);
+                            }
+                        });
+                        
+                        // Scroll to bottom
+                        chatContainer.scrollTop = chatContainer.scrollHeight;
+                    }
+                });
+        };
+        
+        function addUserMessage(content, timestamp) {
+            const row = document.createElement('div');
+            row.className = 'message-row user-row';
+            
+            const html = `
+                <div class="message-container">
+                    <div class="message-header">
+                        <div class="avatar user-avatar">U</div>
+                        <div>You</div>
+                    </div>
+                    <div class="message-content">${content}</div>
+                    ${timestamp ? `<div class="timestamp">${timestamp}</div>` : ''}
+                </div>
+            `;
+            
+            row.innerHTML = html;
+            chatContainer.appendChild(row);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            return row;
+        }
+        
+        function addAssistantMessage(content, result, timestamp) {
+            const row = document.createElement('div');
+            row.className = 'message-row assistant-row';
+            
+            // Format SQL blocks and markdown tables
+            const formattedContent = formatSqlBlocks(content);
+            
+            // Check for large code blocks to potentially move to side panel
+            const hasLargeCodeBlock = (content.length > 500 && (content.includes('```') || content.includes('<SQL>')));
+            
+            let html = `
+                <div class="message-container">
+                    <div class="message-header">
+                        <div class="avatar assistant-avatar">A</div>
+                        <div>Assistant</div>
+                        ${hasLargeCodeBlock ? `
+                            <button class="expand-output-btn" onclick="expandCodeToSidePanel(this.closest('.message-container').querySelector('.sql-block, .code-block'))">
+                                <svg class="icon" width="12" height="12" viewBox="0 0 24 24" fill="none">
+                                    <path d="M15 3H21V9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M9 21H3V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M21 3L14 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M3 21L10 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                                View Code
+                            </button>
+                        ` : ''}
+                    </div>
+                    <div class="message-content">${formattedContent}</div>
+            `;
+            
+            // Add result if available and not null
+            if (result) {
+                if (typeof result === 'string' && result !== "No SQL commands found in the AI response.") {
+                    html += `<div class="result-block">${escapeHtml(result)}</div>`;
+                } else if (Array.isArray(result)) {
+                    result.forEach(item => {
+                        if (item.type === 'ERROR') {
+                            html += `<div class="error-block">Error: ${escapeHtml(item.error)}</div>`;
+                        } else if (item.type === 'SELECT' && item.columns && item.rows) {
+                            html += formatTableResult(item);
+                        } else {
+                            html += `<div class="result-block">${JSON.stringify(item, null, 2)}</div>`;
+                        }
+                    });
+                } else if (result.type === 'ERROR') {
+                    html += `<div class="error-block">Error: ${escapeHtml(result.error)}</div>`;
+                } else if (result !== "No SQL commands found in the AI response.") {
+                    html += `<div class="result-block">${JSON.stringify(result, null, 2)}</div>`;
+                }
+            }
+            
+            // Add timestamp
+            if (timestamp) {
+                html += `<div class="timestamp">${timestamp}</div>`;
+            }
+            
+            html += `</div>`;
+            
+            row.innerHTML = html;
+            chatContainer.appendChild(row);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            
+            // Add expand and copy buttons to code blocks
+            const codeBlocks = row.querySelectorAll('.sql-block, .code-block');
+            codeBlocks.forEach(block => {
+                if (!block.querySelector('.code-expand-btn')) {
+                    // Add expand button
+                    const expandBtn = document.createElement('button');
+                    expandBtn.className = 'code-expand-btn';
+                    expandBtn.innerHTML = `
+                        <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <path d="M15 3H21V9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M9 21H3V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M21 3L14 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M3 21L10 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    `;
+                    expandBtn.setAttribute('title', 'View in side panel');
+                    expandBtn.onclick = function() {
+                        expandCodeToSidePanel(this);
+                    };
+                    block.appendChild(expandBtn);
+                    
+                    // Add copy button
+                    const copyBtn = document.createElement('button');
+                    copyBtn.className = 'copy-code-btn';
+                    copyBtn.innerHTML = `
+                        <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <path d="M16 1H4C2.9 1 2 1.9 2 3v14h2V3h12V1zm3 4H8C6.9 5 6 5.9 6 7v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z" fill="currentColor"/>
+                        </svg>
+                    `;
+                    copyBtn.setAttribute('title', 'Copy to clipboard');
+                    copyBtn.onclick = function() {
+                        copyCode(this);
+                    };
+                    block.appendChild(copyBtn);
+                }
+            });
+            
+            return row;
+        }
+        
+        function formatTableResult(result) {
+            // If there's an error, display it properly
+            if (result.type === 'ERROR') {
+                return `<div class="error-block">Error: ${escapeHtml(result.error)}</div>`;
+            }
+            
+            // Check for valid table data
+            if (!result.columns || !result.rows || result.columns.length === 0) {
+                return `<div class="result-block">Empty result set</div>`;
+            }
+            
+            // Check if this is a large result (more than 10 rows or 6 columns)
+            const isLargeResult = result.rows.length > 10 || result.columns.length > 6;
+            
+            // Create table HTML
+            let tableHtml = `
+                <div class="table-container">
+                    ${isLargeResult ? `<button class="expand-output-btn" onclick="expandToSidePanel(this)">
+                        <svg class="icon" width="12" height="12" viewBox="0 0 24 24" fill="none">
+                            <path d="M15 3H21V9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M9 21H3V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M21 3L14 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M3 21L10 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        View Full Table
+                    </button>` : ''}
+                    <div class="table-caption">Query Result (${result.count} rows)</div>
+                    <table class="result-table">
+                        <thead>
+                            <tr>
+            `;
+            
+            // Add table headers
+            result.columns.forEach(column => {
+                tableHtml += `<th>${escapeHtml(column)}</th>`;
+            });
+            
+            tableHtml += `
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            // Add table rows
+            if (result.rows.length === 0) {
+                tableHtml += `
+                    <tr>
+                        <td colspan="${result.columns.length}" style="text-align: center; padding: 20px;">
+                            No data found
+                        </td>
+                    </tr>
+                `;
+            } else {
+                // Limit rows in main view if large result
+                const rowsToShow = isLargeResult ? Math.min(10, result.rows.length) : result.rows.length;
+                
+                for (let i = 0; i < rowsToShow; i++) {
+                    const row = result.rows[i];
+                    tableHtml += `<tr>`;
+                    for (let j = 0; j < result.columns.length; j++) {
+                        const value = j < row.length ? (row[j] === null ? "NULL" : row[j]) : '';
+                        tableHtml += `<td>${escapeHtml(String(value))}</td>`;
+                    }
+                    tableHtml += `</tr>`;
+                }
+                
+                // Show message if rows are truncated
+                if (isLargeResult && result.rows.length > rowsToShow) {
+                    tableHtml += `
+                        <tr>
+                            <td colspan="${result.columns.length}" style="text-align: center; padding: 10px; font-style: italic; background-color: var(--primary-light); color: var(--primary-color);">
+                                ${result.rows.length - rowsToShow} more rows (click "View Full Table" to see all)
+                            </td>
+                        </tr>
+                    `;
+                }
+            }
+            
+            tableHtml += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            
+            return tableHtml;
+        }
+        
+        function formatSqlBlocks(text) {
+            // First replace Markdown code blocks with our styled code blocks
+            let formatted = text.replace(/```sql\s+([\s\S]*?)```/g, 
+                '<div class="sql-block">$1</div>');
+            
+            // Then handle other code blocks
+            formatted = formatted.replace(/```(\w*)\s+([\s\S]*?)```/g, 
+                '<div class="code-block">$2</div>');
+            
+            // Then handle SQL tags
+            formatted = formatted.replace(/<SQL>([\s\S]*?)<\/SQL>/g, 
+                '<div class="sql-block">$1</div>');
+            
+            // Find potential markdown tables (any series of lines with | characters)
+            const tableRegex = /(\|\s*[\w\s]+\s*\|\s*[\w\s]+.*\|\s*\n\s*\|[\s:-]+\|[\s:-]+.*\|\s*\n\s*(?:\|.*\|\s*\n\s*)+)/g;
+            
+            formatted = formatted.replace(tableRegex, function(match) {
+                // Try to parse as markdown table
+                const tableData = parseMarkdownTable(match);
+                
+                // If not a valid table, return the original text
+                if (!tableData || !tableData.columns || tableData.columns.length === 0) {
+                    return match;
+                }
+                
+                // Generate HTML table
+                let tableHtml = `
+                    <div class="table-container">
+                        <div class="table-caption">Table</div>
+                        <table class="result-table">
+                            <thead>
+                                <tr>
+                `;
+                
+                // Add headers
+                tableData.columns.forEach(header => {
+                    tableHtml += `<th>${escapeHtml(header)}</th>`;
+                });
+                
+                tableHtml += `
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                
+                // Add rows
+                if (tableData.rows.length === 0) {
+                    tableHtml += `
+                        <tr>
+                            <td colspan="${tableData.columns.length}" style="text-align: center; padding: 20px;">
+                                No data
+                            </td>
+                        </tr>
+                    `;
+                } else {
+                    tableData.rows.forEach(row => {
+                        tableHtml += `<tr>`;
+                        row.forEach(cell => {
+                            tableHtml += `<td>${escapeHtml(cell)}</td>`;
+                        });
+                        tableHtml += `</tr>`;
+                    });
+                }
+                
+                tableHtml += `
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                
+                return tableHtml;
+            });
+            
+            return formatted;
+        }
+        
+        function parseMarkdownTable(tableText) {
+            const lines = tableText.trim().split('\n');
+            
+            // Need at least 3 lines (header, separator, data)
+            if (lines.length < 3) return null;
+            
+            // Check if second line contains separator pattern (|---|---|)
+            const separatorLine = lines[1];
+            if (!separatorLine.match(/^\s*\|[-:\s]+\|[-:\s]+\|/)) return null;
+            
+            // Extract headers from first line
+            const headerLine = lines[0];
+            const headers = headerLine.split('|')
+                .map(h => h.trim())
+                .filter(h => h.length > 0);
+            
+            // Extract data rows
+            const rows = [];
+            for (let i = 2; i < lines.length; i++) {
+                const line = lines[i].trim();
+                
+                // Skip lines that don't look like table rows
+                if (!line.startsWith('|') || !line.endsWith('|')) continue;
+                
+                // Skip continuation markers
+                if (line.includes('...')) continue;
+                
+                // Split the line into cells
+                const cells = line.split('|')
+                    .map(c => c.trim())
+                    .filter((c, idx) => idx > 0 && idx <= headers.length);
+                
+                if (cells.length > 0) {
+                    rows.push(cells);
+                }
+            }
+            
+            return { columns: headers, rows: rows };
+        }
+
+        // Improved thinking indicator
+        function addLoadingMessage() {
+            const row = document.createElement('div');
+            row.className = 'message-row assistant-row';
+            row.id = 'loading-message';
+            
+            const html = `
+                <div class="message-container">
+                    <div class="message-header">
+                        <div class="avatar assistant-avatar">A</div>
+                        <div>Assistant</div>
+                    </div>
+                    <div class="message-content">
+                        <div class="thinking-indicator">
+                            <span>Thinking</span>
+                            <div class="thinking-dots">
+                                <div class="thinking-dot"></div>
+                                <div class="thinking-dot"></div>
+                                <div class="thinking-dot"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            row.innerHTML = html;
+            chatContainer.appendChild(row);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            
+            // Add stop generation button
+            const messageContent = row.querySelector('.message-content');
+            const stopBtn = document.createElement('button');
+            stopBtn.className = 'response-btn stop-btn';
+            stopBtn.innerHTML = `
+                <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <path d="M6 6h12v12H6z" fill="currentColor"/>
+                </svg>
+                Stop generating
+            `;
+            stopBtn.onclick = stopGeneration;
+            
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'response-actions';
+            actionsDiv.appendChild(stopBtn);
+            messageContent.appendChild(actionsDiv);
+            
+            return row;
+        }
+        
+        function removeLoadingMessage() {
+            const loadingMessage = document.getElementById('loading-message');
+            if (loadingMessage) {
+                clearInterval(loadingMessage.animateInterval);
+                chatContainer.removeChild(loadingMessage);
+            }
+        }
+        
+        // Function to stop generation
+        function stopGeneration() {
+            // Implement an abort controller for your fetch requests
+            if (currentAbortController) {
+                currentAbortController.abort();
+                removeLoadingMessage();
+                
+                // Add a "Generation stopped" message
+                const row = document.createElement('div');
+                row.className = 'message-row assistant-row';
+                row.innerHTML = `
+                    <div class="message-container">
+                        <div class="message-header">
+                            <div class="avatar assistant-avatar">A</div>
+                            <div>Assistant</div>
+                        </div>
+                        <div class="message-content">
+                            <i>Generation stopped.</i>
+                        </div>
+                    </div>
+                `;
+                chatContainer.appendChild(row);
+                
+                // Re-enable input
+                isSending = false;
+                sendBtn.disabled = false;
+                userInput.focus();
+            }
+        }
+
+        // Character counter
+        userInput.addEventListener('input', function() {
+            const charCount = this.value.length;
+            let counterEl = document.querySelector('.char-counter');
+            
+            if (!counterEl) {
+                counterEl = document.createElement('div');
+                counterEl.className = 'char-counter';
+                this.parentElement.appendChild(counterEl);
+            }
+            
+            counterEl.textContent = `${charCount} characters`;
+            
+            // Show or hide based on content
+            counterEl.style.opacity = charCount > 0 ? '1' : '0';
+        });
+
+        // Copy code function
+        function copyCode(button) {
+            const codeBlock = button.closest('.sql-block') || button.closest('.code-block');
+            const codeText = codeBlock.textContent;
+            
+            navigator.clipboard.writeText(codeText).then(() => {
+                // Show "Copied!" toast
+                let toast = document.querySelector('.copied-toast');
+                if (!toast) {
+                    toast = document.createElement('div');
+                    toast.className = 'copied-toast';
+                    toast.textContent = 'Copied to clipboard';
+                    document.body.appendChild(toast);
+                }
+                
+                toast.classList.add('show');
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                }, 2000);
+                
+                // Update button text temporarily
+                const originalHTML = button.innerHTML;
+                button.innerHTML = '<svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" fill="currentColor"/></svg> Copied!';
+                
+                setTimeout(() => {
+                    button.innerHTML = originalHTML;
+                }, 2000);
+            });
+        }
+        
+        // Updated sendMessage function with abort controller
+        function sendMessage() {
+            const message = userInput.value.trim();
+            if (!message || isSending) return;
+            
+            // Check if welcome message exists and remove it
+            const welcomeMsg = document.querySelector('.welcome-message');
+            if (welcomeMsg) chatContainer.removeChild(welcomeMsg);
+            
+            // Update chat title if this is the first message
+            if (!chatHistory[currentChatId] || chatHistory[currentChatId].length === 0) {
+                const chatTitle = message.length > 20 ? message.substring(0, 20) + '...' : message;
+                const currentChat = document.querySelector(`.chat-item[data-id="${currentChatId}"]`);
+                if (currentChat) {
+                    const chatText = currentChat.querySelector('.chat-text');
+                    if (chatText) {
+                        chatText.textContent = chatTitle;
+                    }
+                    saveChatList();
+                }
+            }
+            
+            // Display user message
+            addUserMessage(message);
+            
+            // Add to chat history
+            if (!chatHistory[currentChatId]) {
+                chatHistory[currentChatId] = [];
+            }
+            
+            const timestamp = new Date().toLocaleTimeString();
+            chatHistory[currentChatId].push({
+                role: 'user',
+                content: message,
+                timestamp: timestamp
+            });
+            
+            // Clear input and resize
+            userInput.value = '';
+            autoResize(userInput);
+            
+            // Hide character counter
+            const charCounter = document.querySelector('.char-counter');
+            if (charCounter) charCounter.style.opacity = '0';
+            
+            // Disable input while sending
+            isSending = true;
+            sendBtn.disabled = true;
+            
+            // Show loading indicator
+            const loadingMessage = addLoadingMessage();
+            
+            // Create new AbortController
+            currentAbortController = new AbortController();
+            
+            // Send to backend with database info
+            fetch('/process', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ 
+                    message: message,
+                    database: currentDatabase
+                }),
+                signal: currentAbortController.signal
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Remove loading message
+                removeLoadingMessage();
+                
+                // Update chat history
+                chatHistory[currentChatId].push({
+                    role: 'assistant',
+                    content: data.response,
+                    result: data.result,
+                    timestamp: new Date().toLocaleTimeString()
+                });
+                
+                saveChatHistories();
+                
+                // Display AI response
+                const messageRow = addAssistantMessage(data.response, data.result);
+                
+                // Add regenerate and continue buttons if needed
+                const isTruncated = data.response.includes("I need to stop here") || 
+                                  data.response.includes("Let me know if you'd like me to continue");
+                
+                if (messageRow) {
+                    const messageContent = messageRow.querySelector('.message-content');
+                    const actionsDiv = document.createElement('div');
+                    actionsDiv.className = 'response-actions';
+                    
+                    // Add regenerate button
+                    const regenerateBtn = document.createElement('button');
+                    regenerateBtn.className = 'response-btn';
+                    regenerateBtn.innerHTML = `
+                        <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" fill="currentColor"/>
+                        </svg>
+                        Regenerate
+                    `;
+                    regenerateBtn.onclick = regenerateResponse;
+                    actionsDiv.appendChild(regenerateBtn);
+                    
+                    // Add continue button for truncated responses
+                    if (isTruncated) {
+                        const continueBtn = document.createElement('button');
+                        continueBtn.className = 'response-btn';
+                        continueBtn.innerHTML = `
+                            <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                <path d="M16 12l-6-6v12l6-6z" fill="currentColor"/>
+                            </svg>
+                            Continue generating
+                        `;
+                        continueBtn.onclick = continueGeneration;
+                        actionsDiv.appendChild(continueBtn);
+                        
+                        // Add truncated notice
+                        const truncatedNotice = document.createElement('div');
+                        truncatedNotice.className = 'truncated-notice';
+                        truncatedNotice.innerHTML = 'The response was truncated. Click "Continue generating" to proceed.';
+                        messageContent.appendChild(truncatedNotice);
+                    }
+                    
+                    messageContent.appendChild(actionsDiv);
+                }
+                
+                // Re-enable input
+                isSending = false;
+                sendBtn.disabled = false;
+                userInput.focus();
+                
+                // Reset abort controller
+                currentAbortController = null;
+            })
+            .catch(error => {
+                // Don't show error if aborted intentionally
+                if (error.name === 'AbortError') return;
+                
+                // Remove loading message
+                removeLoadingMessage();
+                
+                // Display error
+                const row = document.createElement('div');
+                row.className = 'message-row assistant-row';
+                row.innerHTML = `
+                    <div class="message-container">
+                        <div class="message-header">
+                            <div class="avatar assistant-avatar">A</div>
+                            <div>Assistant</div>
+                        </div>
+                        <div class="message-content">
+                            <div class="error-block">Error: ${error.message}</div>
+                        </div>
+                    </div>
+                `;
+                chatContainer.appendChild(row);
+                
+                // Re-enable input
+                isSending = false;
+                sendBtn.disabled = false;
+                userInput.focus();
+                
+                // Reset abort controller
+                currentAbortController = null;
+            });
+        }
+
+        // Regenerate the last response
+        function regenerateResponse() {
+            if (isSending) return;
+            
+            // Get the last user message from chat history
+            if (!chatHistory[currentChatId] || chatHistory[currentChatId].length < 2) return;
+            
+            // Find the last user message
+            let lastUserMessage = null;
+            for (let i = chatHistory[currentChatId].length - 1; i >= 0; i--) {
+                if (chatHistory[currentChatId][i].role === 'user') {
+                    lastUserMessage = chatHistory[currentChatId][i].content;
+                    break;
+                }
+            }
+            
+            if (!lastUserMessage) return;
+            
+            // Remove the last assistant message from DOM and history
+            const assistantRows = document.querySelectorAll('.assistant-row');
+            if (assistantRows.length > 0) {
+                const lastRow = assistantRows[assistantRows.length - 1];
+                lastRow.parentNode.removeChild(lastRow);
+            }
+            
+            // Remove last assistant message from history
+            for (let i = chatHistory[currentChatId].length - 1; i >= 0; i--) {
+                if (chatHistory[currentChatId][i].role === 'assistant') {
+                    chatHistory[currentChatId].splice(i, 1);
+                    break;
+                }
+            }
+            
+            // Re-submit the last user message
+            userInput.value = lastUserMessage;
+            sendMessage();
+        }
+
+        // Continue generation where it left off
+        function continueGeneration() {
+            if (isSending) return;
+            
+            // Get the last assistant message
+            if (!chatHistory[currentChatId] || chatHistory[currentChatId].length < 1) return;
+            
+            let lastAssistantMessage = null;
+            for (let i = chatHistory[currentChatId].length - 1; i >= 0; i--) {
+                if (chatHistory[currentChatId][i].role === 'assistant') {
+                    lastAssistantMessage = chatHistory[currentChatId][i].content;
+                    break;
+                }
+            }
+            
+            if (!lastAssistantMessage) return;
+            
+            // Send a "continue" message
+            userInput.value = "Please continue where you left off.";
+            sendMessage();
+        }
+        
+        function useExample(element) {
+            userInput.value = element.textContent;
+            userInput.focus();
+            autoResize(userInput);
+        }
+        
+        function clearHistory() {
+            showDatabaseModal();
+        }
+        
+        function autoResize(textarea) {
+            textarea.style.height = 'auto';
+            textarea.style.height = Math.min(textarea.scrollHeight, 200) + 'px';
+        }
+        
+        // Helper function to escape HTML
+        function escapeHtml(unsafe) {
+            if (unsafe === null || unsafe === undefined) return '';
+            return String(unsafe)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+        
+        // Allow Enter key to send messages (Shift+Enter for new line)
+        userInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+        
+        // Handle Enter key in database modal
+        document.getElementById('database-name').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                createNewChatWithDb();
+            }
+        });
+        
+        // Focus on input when page loads
+        userInput.focus();
+    </script>
+</body>
+</html>
