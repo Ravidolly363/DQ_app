@@ -8,7 +8,7 @@ from datetime import datetime
 from dotenv import load_dotenv # pyright: ignore[reportMissingImports]
 
 # Import Groq correctly
-import groq
+from groq import Groq
 
 # Load environment variables
 load_dotenv()
@@ -30,7 +30,9 @@ DB_CONFIG = {
 }
 
 # Initialize Groq client with API key from environment variable
-groq.api_key = os.environ.get('GROQ_API_KEY', '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')
+groq_client = Groq(
+    api_key=os.environ.get('GROQ_API_KEY', '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')
+)
 
 
 # Main routes
@@ -288,8 +290,11 @@ def get_ai_response(user_message, database='DataQuality'):
         if 'content' in msg:
             messages.append({"role": msg['role'], "content": msg['content']})
     
+    # Add current user message
+    messages.append({"role": "user", "content": user_message})
+    
     try:
-        chat_completion = groq.chat.completions.create(
+        chat_completion = groq_client.chat.completions.create(
             messages=messages,
             model="llama3-70b-8192",  # Using Llama 3 70B model
             temperature=0.7,  # Add some creativity for conversational responses
