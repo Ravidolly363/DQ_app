@@ -7,8 +7,17 @@ import json
 from datetime import datetime
 from dotenv import load_dotenv # pyright: ignore[reportMissingImports]
 
-# Import Groq correctly
-from groq import Groq
+# Import Groq correctly - try different import methods
+try:
+    from groq import Groq
+    GROQ_IMPORT_METHOD = "new"
+except ImportError:
+    try:
+        import groq
+        GROQ_IMPORT_METHOD = "old"
+    except ImportError:
+        print("Groq package not found. Please install with: pip install groq")
+        exit(1)
 
 # Load environment variables
 load_dotenv()
@@ -30,9 +39,13 @@ DB_CONFIG = {
 }
 
 # Initialize Groq client with API key from environment variable
-groq_client = Groq(
-    api_key=os.environ.get('GROQ_API_KEY', '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')
-)
+GROQ_API_KEY = os.environ.get('GROQ_API_KEY', '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')
+
+if GROQ_IMPORT_METHOD == "new":
+    groq_client = Groq(api_key=GROQ_API_KEY)
+else:
+    groq.api_key = GROQ_API_KEY
+    groq_client = None
 
 
 # Main routes
@@ -294,13 +307,23 @@ def get_ai_response(user_message, database='DataQuality'):
     messages.append({"role": "user", "content": user_message})
     
     try:
-        chat_completion = groq_client.chat.completions.create(
-            messages=messages,
-            model="llama3-70b-8192",  # Using Llama 3 70B model
-            temperature=0.7,  # Add some creativity for conversational responses
-            top_p=0.9
-        )
-        return chat_completion.choices[0].message.content
+        if GROQ_IMPORT_METHOD == "new":
+            chat_completion = groq_client.chat.completions.create(
+                messages=messages,
+                model="llama3-70b-8192",  # Using Llama 3 70B model
+                temperature=0.7,  # Add some creativity for conversational responses
+                top_p=0.9
+            )
+            return chat_completion.choices[0].message.content
+        else:
+            # Use old groq API method
+            chat_completion = groq.chat.completions.create(
+                messages=messages,
+                model="llama3-70b-8192",
+                temperature=0.7,
+                top_p=0.9
+            )
+            return chat_completion.choices[0].message.content
     except Exception as e:
         logger.error(f"Groq API error: {str(e)}")
         return f"Error connecting to Groq API: {str(e)}"
