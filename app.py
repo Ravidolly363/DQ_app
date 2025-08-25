@@ -31,7 +31,7 @@ DB_CONFIG = {
     'host': os.environ.get('DB_HOST', 'localhost'),
     'user': os.environ.get('DB_USER', 'data_processor'),
     'password': os.environ.get('DB_PASSWORD', 'StrongPassword123'),
-    'database': os.environ.get('DB_NAME', 'DataQuality')
+    'database': os.environ.get('DB_NAME', '')
 }
 
 # Initialize Groq client with API key from environment variable
