@@ -10,7 +10,7 @@ mysql-connector-python==8.0.32
 protobuf==3.20.3
 
 # API Client
-groq==0.3.0
+groq>=0.4.0
 httpx==0.24.1
 requests==2.31.0
 
